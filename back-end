@@ -23,3 +23,89 @@ app.use('/clientes', clienteRoutes);
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+// backend/config/database.ts
+import { createPool } from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const pool = createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
+
+export const createConnection = async () => {
+    try {
+        const connection = await pool.getConnection();
+        console.log("Conectado ao MySQL com sucesso!");
+        connection.release();
+    } catch (error) {
+        console.error("Erro ao conectar ao MySQL:", error);
+        process.exit(1);
+    }
+};
+
+// backend/routes/clienteRoutes.ts
+import express from 'express';
+import { listarClientes, criarCliente, editarCliente, excluirCliente } from '../controllers/clienteController';
+
+const router = express.Router();
+
+router.get('/', listarClientes);
+router.post('/', criarCliente);
+router.put('/:id', editarCliente);
+router.delete('/:id', excluirCliente);
+
+export default router;
+
+// backend/controllers/clienteController.ts
+import { Request, Response } from 'express';
+import { pool } from '../config/database';
+
+export const listarClientes = async (req: Request, res: Response) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM clientes');
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao listar clientes" });
+    }
+};
+
+export const criarCliente = async (req: Request, res: Response) => {
+    try {
+        const { cnpj, nome, nomeFantasia, cep, logradouro, bairro, cidade, uf, complemento, email, telefone } = req.body;
+        await pool.query('INSERT INTO clientes (cnpj, nome, nomeFantasia, cep, logradouro, bairro, cidade, uf, complemento, email, telefone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [cnpj, nome, nomeFantasia, cep, logradouro, bairro, cidade, uf, complemento, email, telefone]);
+        res.status(201).json({ message: "Cliente criado com sucesso!" });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao criar cliente" });
+    }
+};
+
+export const editarCliente = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { cnpj, nome, nomeFantasia, cep, logradouro, bairro, cidade, uf, complemento, email, telefone } = req.body;
+        await pool.query('UPDATE clientes SET cnpj=?, nome=?, nomeFantasia=?, cep=?, logradouro=?, bairro=?, cidade=?, uf=?, complemento=?, email=?, telefone=? WHERE id=?',
+            [cnpj, nome, nomeFantasia, cep, logradouro, bairro, cidade, uf, complemento, email, telefone, id]);
+        res.json({ message: "Cliente atualizado com sucesso!" });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao editar cliente" });
+    }
+};
+
+export const excluirCliente = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        await pool.query('DELETE FROM clientes WHERE id=?', [id]);
+        res.json({ message: "Cliente excluído com sucesso!" });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao excluir cliente" });
+    }
+};
