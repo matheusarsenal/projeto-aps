@@ -1,1 +1,132 @@
-.
+// Frontend - React com Chakra UI
+
+import React from 'react';
+import { ChakraProvider, Container, Heading } from '@chakra-ui/react';
+import ClienteList from './components/ClienteList';
+import ClienteForm from './components/ClienteForm';
+
+const App = () => {
+  return (
+    <ChakraProvider>
+      <Container maxW="container.lg" py={10}>
+        <Heading mb={6}>Gerenciamento de Clientes</Heading>
+        <ClienteForm />
+        <ClienteList />
+      </Container>
+    </ChakraProvider>
+  );
+};
+
+export default App;
+
+// components/ClienteList.js
+import React, { useEffect, useState } from 'react';
+import { Table, Thead, Tbody, Tr, Th, Td, Button } from '@chakra-ui/react';
+import axios from 'axios';
+
+const ClienteList = ({ onEdit }) => {
+  const [clientes, setClientes] = useState([]);
+
+  const fetchClientes = () => {
+    axios.get('http://localhost:5000/clientes')
+      .then(response => setClientes(response.data))
+      .catch(error => console.error('Erro ao buscar clientes:', error));
+  };
+
+  useEffect(() => {
+    fetchClientes();
+  }, []);
+
+  const handleDelete = async (cnpj) => {
+    try {
+      await axios.delete(`http://localhost:5000/clientes/${cnpj}`);
+      fetchClientes();
+    } catch (error) {
+      console.error('Erro ao excluir cliente:', error);
+    }
+  };
+
+  return (
+    <Table variant="simple">
+      <Thead>
+        <Tr>
+          <Th>CNPJ</Th>
+          <Th>Nome</Th>
+          <Th>Email</Th>
+          <Th>Ações</Th>
+        </Tr>
+      </Thead>
+      <Tbody>
+        {clientes.map(cliente => (
+          <Tr key={cliente.cnpj}>
+            <Td>{cliente.cnpj}</Td>
+            <Td>{cliente.nome}</Td>
+            <Td>{cliente.email}</Td>
+            <Td>
+              <Button colorScheme="blue" mr={2} onClick={() => onEdit(cliente)}>Editar</Button>
+              <Button colorScheme="red" onClick={() => handleDelete(cliente.cnpj)}>Excluir</Button>
+            </Td>
+          </Tr>
+        ))}
+      </Tbody>
+    </Table>
+  );
+};
+
+export default ClienteList;
+
+// components/ClienteForm.js
+import React, { useState, useEffect } from 'react';
+import { Box, Input, Button, FormControl, FormLabel } from '@chakra-ui/react';
+import axios from 'axios';
+
+const ClienteForm = ({ clienteEdit, setClienteEdit }) => {
+  const [form, setForm] = useState({ cnpj: '', nome: '', email: '' });
+
+  useEffect(() => {
+    if (clienteEdit) {
+      setForm(clienteEdit);
+    }
+  }, [clienteEdit]);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (clienteEdit) {
+        await axios.put(`http://localhost:5000/clientes/${form.cnpj}`, form);
+        setClienteEdit(null);
+      } else {
+        await axios.post('http://localhost:5000/clientes', form);
+      }
+      alert('Cliente salvo com sucesso!');
+      setForm({ cnpj: '', nome: '', email: '' });
+    } catch (error) {
+      console.error('Erro ao salvar cliente:', error);
+    }
+  };
+
+  return (
+    <Box mb={6}>
+      <FormControl mb={4}>
+        <FormLabel>CNPJ</FormLabel>
+        <Input name="cnpj" value={form.cnpj} onChange={handleChange} disabled={!!clienteEdit} />
+      </FormControl>
+      <FormControl mb={4}>
+        <FormLabel>Nome</FormLabel>
+        <Input name="nome" value={form.nome} onChange={handleChange} />
+      </FormControl>
+      <FormControl mb={4}>
+        <FormLabel>Email</FormLabel>
+        <Input name="email" value={form.email} onChange={handleChange} />
+      </FormControl>
+      <Button colorScheme="green" onClick={handleSubmit}>{clienteEdit ? 'Atualizar' : 'Cadastrar'} Cliente</Button>
+      {clienteEdit && <Button ml={2} onClick={() => setClienteEdit(null)}>Cancelar</Button>}
+    </Box>
+  );
+};
+
+export default ClienteForm;
