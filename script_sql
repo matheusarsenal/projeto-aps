@@ -1,0 +1,13 @@
+CREATE TABLE "projeto_aps"."clientes" (
+    cnpj VARCHAR(14)NOT NULL,
+    nome VARCHAR(100) NOT NULL,
+    nomeFantasia VARCHAR(100)NOT NULL,
+    cep VARCHAR(10)NOT NULL,
+    logradouro VARCHAR(100)NOT NULL,
+    bairro VARCHAR(100)NOT NULL,
+    cidade VARCHAR(100)NOT NULL,
+    UF VARCHAR(2)NOT NULL,
+    complemento VARCHAR(100)NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    telefone VARCHAR(15) NOT NULL,
+    PRIMARY KEY("cnpj"));
